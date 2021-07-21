@@ -156,8 +156,16 @@ class _SensorViewState extends State<SensorView> {
     });
   }
 
+  Future<void> _stopReceivingDataUpdates (BluetoothCharacteristic device) {
+    return device.write([0x64])
+        .then((value) { return value; })
+        .catchError((e) { print('ERROR WHILE DISABLING DATA RECEPTION: $e'); });
+  }
+
   void _launchSensorHistoryImportation (BluetoothCharacteristic device) async {
     this._isReceivingHistory = true;
+    await _stopReceivingDataUpdates(device);
+
     ScaffoldMessenger.of(_scaffoldKey.currentContext).showSnackBar(
         new SnackBar(duration: new Duration(days: 1), content:
           new Row(
