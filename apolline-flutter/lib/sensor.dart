@@ -48,6 +48,7 @@ class _SensorViewState extends State<SensorView> {
   SqfLiteService _sqfLiteService = SqfLiteService();
   Position _currentPosition;
   bool _isReceivingHistory = false;
+  BluetoothCharacteristic _currentDevice;
 
   RealtimeDataService _dataService = locator<RealtimeDataService>();
 
@@ -133,6 +134,8 @@ class _SensorViewState extends State<SensorView> {
   ///
   ///
   void handleNotification(BluetoothCharacteristic c) {
+    this._currentDevice = c;
+
     subData = c.value.listen((value) {
       if (connectType == ConnexionType.Disconnect) {
         //tester si on est dans le cas d'une reconnexion
@@ -145,15 +148,11 @@ class _SensorViewState extends State<SensorView> {
 
     /* Now we tell the sensor to start sending data by sending char 'c' (?) */
     timer = Timer(Duration(seconds: 5), () {
-      //updateState("Starting up streaming");
-      _launchSensorHistoryImportation(c);
-
-      /*
       c.write([0x63]).then((s) {
         print("Requested streaming start");
       }).catchError((e) {
         print(e);
-      });*/
+      });
     });
   }
 
@@ -387,6 +386,14 @@ class _SensorViewState extends State<SensorView> {
           home: DefaultTabController(
             length: 3,
             child: Scaffold(
+              floatingActionButton: FloatingActionButton(
+                child: Icon(Icons.refresh_outlined),
+                onPressed: () {
+                  if (!this._isReceivingHistory) {
+                    this._launchSensorHistoryImportation(this._currentDevice);
+                  }
+                },
+              ),
                 key: _scaffoldKey,
                 appBar: AppBar(
                   backgroundColor: Colors.green,
