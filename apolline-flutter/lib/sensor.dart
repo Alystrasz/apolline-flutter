@@ -47,6 +47,7 @@ class _SensorViewState extends State<SensorView> {
   // use for sqfLite to save data in local
   SqfLiteService _sqfLiteService = SqfLiteService();
   Position _currentPosition;
+  bool _isReceivingHistory = false;
 
   RealtimeDataService _dataService = locator<RealtimeDataService>();
 
@@ -150,6 +151,13 @@ class _SensorViewState extends State<SensorView> {
         print(e);
       });
     });
+  }
+
+  void _launchSensorHistoryImportation (BluetoothCharacteristic device) async {
+    this._isReceivingHistory = true;
+    device.write([0x62])
+        .then((value) { this._isReceivingHistory = false; })
+        .catchError((e) => print('ERROR WHILE PARSING HISTORY: $e'));
   }
 
   void handleServiceDiscovered(BluetoothService service) {
