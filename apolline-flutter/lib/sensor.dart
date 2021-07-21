@@ -159,8 +159,22 @@ class _SensorViewState extends State<SensorView> {
 
   void _launchSensorHistoryImportation (BluetoothCharacteristic device) async {
     this._isReceivingHistory = true;
+    ScaffoldMessenger.of(_scaffoldKey.currentContext).showSnackBar(
+        new SnackBar(duration: new Duration(days: 1), content:
+          new Row(
+            children: <Widget>[
+              Container(
+                child: new CircularProgressIndicator(),
+                margin: EdgeInsets.only(right: 20),
+              ),
+              new Text("Importing sensor history...")
+            ],
+          )
+        ));
     device.write([0x62])
-        .then((value) => null)
+        .then((value) {
+          print('wtf bro');
+        })
         .catchError((e) => print('ERROR WHILE PARSING HISTORY: $e'));
   }
 
