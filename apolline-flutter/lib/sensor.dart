@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:apollineflutter/gattsample.dart';
 import 'package:apollineflutter/services/sqflite_service.dart';
@@ -165,6 +166,7 @@ class _SensorViewState extends State<SensorView> {
   void _launchSensorHistoryImportation (BluetoothCharacteristic device) async {
     this._isReceivingHistory = true;
     await _stopReceivingDataUpdates(device);
+    sleep(Duration(seconds: 4));
 
     ScaffoldMessenger.of(_scaffoldKey.currentContext).showSnackBar(
         new SnackBar(duration: new Duration(days: 1), content:
@@ -180,7 +182,7 @@ class _SensorViewState extends State<SensorView> {
         ));
     device.write([0x62])
         .then((value) {
-          print('wtf bro');
+          print('Started listening for history');
         })
         .catchError((e) => print('ERROR WHILE PARSING HISTORY: $e'));
   }
