@@ -73,25 +73,36 @@ class _SensorViewState extends State<SensorView> {
     String s = String.fromCharCodes(value);
     buf += s;
 
-    if (buf.contains('\n')) {
-      print("Got full line: " + buf);
-      List<String> values = buf.split(';');
-      var position = this._currentPosition ?? Position();
-
-      var model = SensorModel(values: values, device: SensorDevice(widget.device), position: position);
-      _dataService.update(model);
-      /* insert to sqflite */
-      _sqfLiteService.insertSensor(model.toJSON());
-
-      setState(() {
-        if (!this._isReceivingHistory)
-          lastReceivedData = model;
-        initialized = true;
-
-        /* Perform additional handling here */
-      });
-      buf = "";
+    if (!this._isValidDataPoint(buf)) {
+      print('Got line which is not sensor data:');
+      print(buf);
+      return;
     }
+    print("Got full line: " + buf);
+    List<String> values = buf.split(';');
+    var position = this._currentPosition ?? Position();
+
+    var model = SensorModel(values: values, device: SensorDevice(widget.device), position: position);
+    _dataService.update(model);
+    /* insert to sqflite */
+    _sqfLiteService.insertSensor(model.toJSON());
+
+    setState(() {
+      if (!this._isReceivingHistory)
+        lastReceivedData = model;
+      initialized = true;
+
+      /* Perform additional handling here */
+    });
+    buf = "";
+  }
+
+  ///
+  /// This is an example of a valid entry:
+  /// 2020_12_15_9_51_27;0;0;0;0;0;0;0;0;0;0.000000;0.000000;0.00;0.00;0;12.17;100220.70;13.57;6.40;4.01;13.57;6.40
+  ///
+  bool _isValidDataPoint (String point) {
+    return point.split(';').length == 22 && !point.startsWith('#');
   }
 
   // Synchronsation data sensor
