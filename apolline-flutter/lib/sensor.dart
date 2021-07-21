@@ -82,7 +82,8 @@ class _SensorViewState extends State<SensorView> {
       _sqfLiteService.insertSensor(model.toJSON());
 
       setState(() {
-        lastReceivedData = model;
+        if (!this._isReceivingHistory)
+          lastReceivedData = model;
         initialized = true;
 
         /* Perform additional handling here */
@@ -145,18 +146,21 @@ class _SensorViewState extends State<SensorView> {
     /* Now we tell the sensor to start sending data by sending char 'c' (?) */
     timer = Timer(Duration(seconds: 5), () {
       //updateState("Starting up streaming");
+      _launchSensorHistoryImportation(c);
+
+      /*
       c.write([0x63]).then((s) {
         print("Requested streaming start");
       }).catchError((e) {
         print(e);
-      });
+      });*/
     });
   }
 
   void _launchSensorHistoryImportation (BluetoothCharacteristic device) async {
     this._isReceivingHistory = true;
     device.write([0x62])
-        .then((value) { this._isReceivingHistory = false; })
+        .then((value) => null)
         .catchError((e) => print('ERROR WHILE PARSING HISTORY: $e'));
   }
 
