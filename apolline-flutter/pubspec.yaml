@@ -11,18 +11,18 @@ description: Apolline sensors app
 # In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-version: 1.2.0+3
+version: 1.2.1+4
 publish_to: none
 
 environment:
   sdk: ">=2.6.0 <3.0.0"
-  flutter: ^2.0.3
+  flutter: ^2.5.0
 
 dependencies:
   flutter:
     sdk: flutter
   flutter_blue: ^0.8.0
-  fluttertoast: ^8.0.7
+  fluttertoast: ^8.0.8
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.3
@@ -46,6 +46,9 @@ dependencies:
   shared_preferences: ^2.0.6
   flutter_background: ^1.0.2+1
   easy_localization: ^3.0.0
+  grant_and_activate: ^0.0.1
+  flutter_local_notifications: ^8.2.0
+  duration_picker: ^1.0.1
 
 
 

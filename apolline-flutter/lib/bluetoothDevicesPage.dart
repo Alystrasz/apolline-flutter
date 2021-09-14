@@ -1,12 +1,16 @@
 import 'package:apollineflutter/sensor_view.dart';
+import 'package:apollineflutter/settings_view.dart';
 import 'package:apollineflutter/utils/device_connection_status.dart';
 import 'package:apollineflutter/widgets/device_card.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_background/flutter_background.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 import 'package:apollineflutter/services/local_persistant_service.dart';
 import 'package:apollineflutter/services/user_configuration_service.dart';
 import 'package:apollineflutter/services/service_locator.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:grant_and_activate/grant_and_activate.dart';
+import 'package:grant_and_activate/utils/classes.dart';
 
 
 
@@ -27,9 +31,20 @@ class _BluetoothDevicesPageState extends State<BluetoothDevicesPage> {
   ///user configuration in the ui
   UserConfigurationService ucS = locator<UserConfigurationService>();
 
+  void setupBackgroundConfig () async {
+    final androidConfig = FlutterBackgroundAndroidConfig(
+      notificationTitle: "notifications.background.title".tr(),
+      notificationText: "notifications.background.body".tr(),
+      notificationImportance: AndroidNotificationImportance.Default,
+      notificationIcon: AndroidResource(name: 'logo_apolline', defType: 'drawable'),
+    );
+    FlutterBackground.initialize(androidConfig: androidConfig);
+  }
+
   @override
   void initState() {
     super.initState();
+    setupBackgroundConfig();
     this.ucS.addListener(() {
       LocalKeyValuePersistance.saveObject(UserConfigurationService.USER_CONF_KEY, ucS.userConf.toJson());
     });
@@ -39,17 +54,17 @@ class _BluetoothDevicesPageState extends State<BluetoothDevicesPage> {
   ///
   ///Permet de tester si le bluetooth est activé ou pas
   Future<void> initializeDevice() async {
-    var isOn = await widget.flutterBlue.isOn;
-    if (isOn) {
+    Result result = await checkPermissionsAndActivateServices([Feature.Bluetooth, Feature.Location]);
+    if (result.allOk) {
       _performDetection();
     } else {
-      showDialogBluetooth();
+      showPermissionsDialog();
     }
   }
 
   ///
-  ///Afficher un message pour activer le bluetooth
-  void showDialogBluetooth() {
+  ///Afficher un message pour activer le bluetooth et la geoloc
+  void showPermissionsDialog() {
     Widget okbtn = TextButton(
       child: Text("OK"),
       onPressed: () {
@@ -58,8 +73,8 @@ class _BluetoothDevicesPageState extends State<BluetoothDevicesPage> {
     );
 
     AlertDialog alert = AlertDialog(
-      title: Text("devicesView.bluetoothPopUp.title").tr(),
-      content: Text("devicesView.bluetoothPopUp.message").tr(),
+      title: Text("devicesView.permissionsPopUp.title").tr(),
+      content: Text("devicesView.permissionsPopUp.message").tr(),
       actions: [okbtn],
     );
 
@@ -206,7 +221,6 @@ class _BluetoothDevicesPageState extends State<BluetoothDevicesPage> {
 
   List<Widget> _buildChildrenButton() {
     const btnStyle = TextStyle(color: Colors.white);
-    Color bgColor = Theme.of(context).primaryColor;
 
     if (timeout) {
       return <Widget>[
@@ -216,10 +230,7 @@ class _BluetoothDevicesPageState extends State<BluetoothDevicesPage> {
     } else {
       return <Widget>[
         SizedBox(
-          child: Theme(
-            data: Theme.of(context).copyWith(accentColor: bgColor),
-            child: CircularProgressIndicator(backgroundColor: Colors.white),
-          ),
+          child: CircularProgressIndicator(backgroundColor: Colors.white),
           width: 20,
           height: 20,
         ),
@@ -269,7 +280,11 @@ class _BluetoothDevicesPageState extends State<BluetoothDevicesPage> {
               padding: EdgeInsets.all(10)
             )
           )
-      )
+      ),
+      floatingActionButton: FloatingActionButton(
+        child: Icon(Icons.settings),
+        onPressed: () => showModalBottomSheet(context: context, builder: (context) => SettingsPanel(ucS: ucS,)),
+      ),
     );
   }
 }
