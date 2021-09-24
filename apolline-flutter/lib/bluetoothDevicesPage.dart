@@ -32,6 +32,8 @@ class _BluetoothDevicesPageState extends State<BluetoothDevicesPage> {
   Set<DiscoveredDevice> devices = Set();
   Set<DiscoveredDevice> pairedDevices = Set();
   Set<DiscoveredDevice> unConnectableDevices = Set();
+  StreamSubscription _devicesScanSubscription;
+
   ///user configuration in the ui
   UserConfigurationService ucS = locator<UserConfigurationService>();
 
@@ -88,6 +90,13 @@ class _BluetoothDevicesPageState extends State<BluetoothDevicesPage> {
     );
   }
 
+  void _stopSearchingForDevices() {
+    setState(() {
+      timeout = true;
+    });
+    this._devicesScanSubscription.cancel();
+  }
+
   /* Starts BLE detection */
   void _performDetection() {
     setState(() {
@@ -102,22 +111,16 @@ class _BluetoothDevicesPageState extends State<BluetoothDevicesPage> {
       timeout = false;
     });
 
-    StreamSubscription streamSubscription = widget.flutterReactiveBle.scanForDevices(scanMode: ScanMode.lowLatency, withServices: []).listen((device) {
+    this._devicesScanSubscription = widget.flutterReactiveBle.scanForDevices(scanMode: ScanMode.lowLatency, withServices: []).listen((device) {
       if (device.name.length > 0 && devices.where((element) => element.name == device.name).length == 0) {
         setState(() {
           devices.add(device);
         });
       }
     }, onError: (obj) {
-      //code for handling error
       print(obj);
     });
-    Timer(Duration(seconds: 10), () {
-      setState(() {
-        timeout = true;
-      });
-      streamSubscription.cancel();
-    });
+    Timer(Duration(seconds: 10), () => _stopSearchingForDevices());
 
 
 
@@ -239,7 +242,7 @@ class _BluetoothDevicesPageState extends State<BluetoothDevicesPage> {
     if (timeout == true) {
       initializeDevice();
     } else {
-      widget.flutterBlue.stopScan();
+      this._stopSearchingForDevices();
     }
   }
 
