@@ -4,19 +4,21 @@ import 'package:apollineflutter/utils/device_connection_status.dart';
 import 'package:apollineflutter/widgets/device_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background/flutter_background.dart';
-import 'package:flutter_blue/flutter_blue.dart';
+import 'package:flutter_blue/flutter_blue.dart' as fblue;
 import 'package:apollineflutter/services/local_persistant_service.dart';
 import 'package:apollineflutter/services/user_configuration_service.dart';
 import 'package:apollineflutter/services/service_locator.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:grant_and_activate/grant_and_activate.dart';
+import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
+import 'package:grant_and_activate/grant_and_activate.dart' as grant;
 import 'package:grant_and_activate/utils/classes.dart';
 
 
 
 class BluetoothDevicesPage extends StatefulWidget {
   BluetoothDevicesPage({Key key}) : super(key: key);
-  final FlutterBlue flutterBlue = FlutterBlue.instance;
+  final fblue.FlutterBlue flutterBlue = fblue.FlutterBlue.instance;
+  final flutterReactiveBle = FlutterReactiveBle();
 
   @override
   _BluetoothDevicesPageState createState() => _BluetoothDevicesPageState();
@@ -25,9 +27,9 @@ class BluetoothDevicesPage extends StatefulWidget {
 
 class _BluetoothDevicesPageState extends State<BluetoothDevicesPage> {
   bool timeout = true;
-  Set<BluetoothDevice> devices = Set();
-  Set<BluetoothDevice> pairedDevices = Set();
-  Set<BluetoothDevice> unConnectableDevices = Set();
+  Set<fblue.BluetoothDevice> devices = Set();
+  Set<fblue.BluetoothDevice> pairedDevices = Set();
+  Set<fblue.BluetoothDevice> unConnectableDevices = Set();
   ///user configuration in the ui
   UserConfigurationService ucS = locator<UserConfigurationService>();
 
@@ -54,7 +56,7 @@ class _BluetoothDevicesPageState extends State<BluetoothDevicesPage> {
   ///
   ///Permet de tester si le bluetooth est activé ou pas
   Future<void> initializeDevice() async {
-    Result result = await checkPermissionsAndActivateServices([Feature.Bluetooth, Feature.Location]);
+    dynamic result = await grant.checkPermissionsAndActivateServices([Feature.Bluetooth, Feature.Location]);
     if (result.allOk) {
       _performDetection();
     } else {
@@ -104,8 +106,8 @@ class _BluetoothDevicesPageState extends State<BluetoothDevicesPage> {
       });
     });
 
-    widget.flutterBlue.connectedDevices.asStream().listen((List<BluetoothDevice> ds) {
-      for (BluetoothDevice device in ds) {
+    widget.flutterBlue.connectedDevices.asStream().listen((List<fblue.BluetoothDevice> ds) {
+      for (fblue.BluetoothDevice device in ds) {
         setState(() {
           pairedDevices.add(device);
           devices.remove(device);
@@ -114,7 +116,7 @@ class _BluetoothDevicesPageState extends State<BluetoothDevicesPage> {
     });
     /* For each result, insert into the detected devices list if not already present */
     widget.flutterBlue.scanResults.listen((results) {
-      for (ScanResult r in results) {
+      for (fblue.ScanResult r in results) {
         if (r.device.name.length > 0) {
           setState(() {
             devices.add(r.device);
@@ -178,9 +180,9 @@ class _BluetoothDevicesPageState extends State<BluetoothDevicesPage> {
   }
 
   /* Handles a click on a device entry */
-  void connectToDevice(BluetoothDevice device) async {
+  void connectToDevice(fblue.BluetoothDevice device) async {
     /* Stop scanning, if not already stopped */
-    FlutterBlue.instance.stopScan();
+    fblue.FlutterBlue.instance.stopScan();
     /* We selected a device - go to the device screen passing information about the selected device */
     DeviceConnectionStatus status = await Navigator.push(
       context,
