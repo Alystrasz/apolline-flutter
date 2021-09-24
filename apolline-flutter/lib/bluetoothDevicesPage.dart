@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:apollineflutter/sensor_view.dart';
 import 'package:apollineflutter/settings_view.dart';
 import 'package:apollineflutter/utils/device_connection_status.dart';
@@ -27,9 +29,9 @@ class BluetoothDevicesPage extends StatefulWidget {
 
 class _BluetoothDevicesPageState extends State<BluetoothDevicesPage> {
   bool timeout = true;
-  Set<fblue.BluetoothDevice> devices = Set();
-  Set<fblue.BluetoothDevice> pairedDevices = Set();
-  Set<fblue.BluetoothDevice> unConnectableDevices = Set();
+  Set<DiscoveredDevice> devices = Set();
+  Set<DiscoveredDevice> pairedDevices = Set();
+  Set<DiscoveredDevice> unConnectableDevices = Set();
   ///user configuration in the ui
   UserConfigurationService ucS = locator<UserConfigurationService>();
 
@@ -100,6 +102,26 @@ class _BluetoothDevicesPageState extends State<BluetoothDevicesPage> {
       timeout = false;
     });
 
+    StreamSubscription streamSubscription = widget.flutterReactiveBle.scanForDevices(scanMode: ScanMode.lowLatency, withServices: []).listen((device) {
+      if (device.name.length > 0 && devices.where((element) => element.name == device.name).length == 0) {
+        setState(() {
+          devices.add(device);
+        });
+      }
+    }, onError: (obj) {
+      //code for handling error
+      print(obj);
+    });
+    Timer(Duration(seconds: 10), () {
+      setState(() {
+        timeout = true;
+      });
+      streamSubscription.cancel();
+    });
+
+
+
+    /*
     widget.flutterBlue.startScan(timeout: Duration(seconds: 10)).then((val) {
       setState(() {
         timeout = true;
@@ -123,7 +145,7 @@ class _BluetoothDevicesPageState extends State<BluetoothDevicesPage> {
           });
         }
       }
-    });
+    });*/
   }
 
 
@@ -180,13 +202,13 @@ class _BluetoothDevicesPageState extends State<BluetoothDevicesPage> {
   }
 
   /* Handles a click on a device entry */
-  void connectToDevice(fblue.BluetoothDevice device) async {
+  void connectToDevice(DiscoveredDevice device) async {
     /* Stop scanning, if not already stopped */
     fblue.FlutterBlue.instance.stopScan();
     /* We selected a device - go to the device screen passing information about the selected device */
     DeviceConnectionStatus status = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => SensorView(device: device)),
+      MaterialPageRoute(builder: (context) => Container() /*SensorView(device: device)*/),
     );
 
     switch (status) {
