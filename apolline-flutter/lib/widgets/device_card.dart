@@ -1,11 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_blue/flutter_blue.dart';
+import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 
 class DeviceCard extends StatefulWidget {
   DeviceCard({this.device, this.connectionCallback, this.enabled = true});
-  final BluetoothDevice device;
-  final Function(BluetoothDevice) connectionCallback;
+  final DiscoveredDevice device;
+  final Function(DiscoveredDevice) connectionCallback;
   final bool enabled;
 
   @override
