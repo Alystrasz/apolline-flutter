@@ -30,6 +30,7 @@ import '../gattsample.dart';
 class SensorTwin {
   QualifiedCharacteristic _characteristic;
   StreamSubscription _deviceStream;
+  StreamSubscription _characteristicStream;
   DiscoveredDevice _device;
   bool _isSendingData;
   bool _isSendingHistory;
@@ -113,7 +114,7 @@ class SensorTwin {
 
   /// Redistributes sensor data to registered callbacks.
   Future<void> _setUpListeners () {
-    FlutterReactiveBle().subscribeToCharacteristic(this._characteristic).listen((data) {
+    this._characteristicStream = FlutterReactiveBle().subscribeToCharacteristic(this._characteristic).listen((data) {
       String message = String.fromCharCodes(data);
       if (_isSendingData && _callbacks.containsKey(SensorTwinEvent.live_data)) {
         DataPointModel model = _handleSensorUpdate(message);
@@ -242,6 +243,7 @@ class SensorTwin {
     this._locationService?.close();
     try {
       this._deviceStream.cancel();
+      this._characteristicStream.cancel();
     } catch (err) {
       print("Couldn't disconnect from sensor (probably because it is not reachable).");
     }
