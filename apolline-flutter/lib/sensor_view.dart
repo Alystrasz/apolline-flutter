@@ -8,8 +8,8 @@ import 'package:apollineflutter/utils/pm_filter.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background/flutter_background.dart';
-import 'package:flutter_blue/flutter_blue.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'models/data_point_model.dart';
 import 'widgets/maps.dart';
@@ -23,8 +23,9 @@ enum ConnexionType { Normal, Disconnect }
 
 class SensorView extends StatefulWidget {
   SensorView({Key key, this.device}) : super(key: key);
-  final BluetoothDevice device;
+  final DiscoveredDevice device;
   final UserConfigurationService ucS = locator<UserConfigurationService>();
+  final flutterReactiveBle = FlutterReactiveBle();
   final AndroidNotificationDetails androidPlatformChannelSpecifics =
     AndroidNotificationDetails(
         'apolline_exposure_notifications',
@@ -62,8 +63,10 @@ class _SensorViewState extends State<SensorView> {
   Future<void> initializeDevice() async {
     print("Connecting to device");
     bool isConnectedToDevice = true;
+    handleDeviceConnect(widget.device);
 
-    try {
+
+   /* try {
       await widget.device.connect().timeout(Duration(seconds: 3), onTimeout: () {
         isConnectedToDevice = false;
         if (_scaffoldMessengerKey.currentContext != null) {
@@ -78,7 +81,7 @@ class _SensorViewState extends State<SensorView> {
     } finally {
       if (isConnectedToDevice)
         handleDeviceConnect(widget.device);
-    }
+    }*/
   }
 
 
@@ -94,12 +97,12 @@ class _SensorViewState extends State<SensorView> {
   /// Builds up a sensor instance from a Bluetooth device.
   /// Sets up data listeners before starting live data transfer.
   ///
-  void handleDeviceConnect(BluetoothDevice device) async {
+  void handleDeviceConnect(DiscoveredDevice device) async {
     if (isConnected) return;
     isConnected = true;
+
     if (this._sensor != null) {
       this._sensor.shutdown();
-      await widget.device.connect();
     }
 
     updateState("connectionMessages.configuring".tr());
@@ -216,7 +219,6 @@ class _SensorViewState extends State<SensorView> {
   @override
   void dispose() {
     FlutterLocalNotificationsPlugin().cancelAll();
-    widget.device.disconnect();
     this._sensor?.shutdown();
     disableBackgroundExecution();
     super.dispose();
