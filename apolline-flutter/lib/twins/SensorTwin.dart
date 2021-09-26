@@ -111,9 +111,26 @@ class SensorTwin {
     _callbacks[event] = callback;
   }
 
+  /// Redistributes sensor status updates to registered callbacks.
+  Future<void> _setUpStatusListener () async {
+    this._deviceStream = FlutterReactiveBle().connectToDevice(id: _device.id).listen((ConnectionStateUpdate status) {
+      switch(status.connectionState) {
+        case DeviceConnectionState.connected:
+          if (_callbacks.containsKey(SensorTwinEvent.sensor_connected))
+            _callbacks[SensorTwinEvent.sensor_connected]("connected");
+          break;
+        case DeviceConnectionState.disconnected:
+          if (_callbacks.containsKey(SensorTwinEvent.sensor_disconnected))
+            _callbacks[SensorTwinEvent.sensor_disconnected]("disconnected");
+          break;
+        default:
+          break;
+      }
+    });
+  }
 
   /// Redistributes sensor data to registered callbacks.
-  Future<void> _setUpListeners () {
+  Future<void> _setUpDataListener () async {
     this._characteristicStream = FlutterReactiveBle().subscribeToCharacteristic(this._characteristic).listen((data) {
       String message = String.fromCharCodes(data);
       if (_isSendingData && _callbacks.containsKey(SensorTwinEvent.live_data)) {
@@ -123,7 +140,6 @@ class SensorTwin {
         _callbacks[SensorTwinEvent.history_data](message);
       }
     });
-    return null;
   }
 
   /// Filters out a Bluetooth device's services and characteristics to find the
@@ -211,23 +227,8 @@ class SensorTwin {
     if (!serviceFound)
       return false;
 
-    this._deviceStream = FlutterReactiveBle().connectToDevice(id: _device.id).listen((ConnectionStateUpdate status) {
-      switch(status.connectionState) {
-        case DeviceConnectionState.connected:
-          if (_callbacks.containsKey(SensorTwinEvent.sensor_connected))
-            _callbacks[SensorTwinEvent.sensor_connected]("connected");
-          break;
-        case DeviceConnectionState.disconnected:
-          if (_callbacks.containsKey(SensorTwinEvent.sensor_disconnected))
-            _callbacks[SensorTwinEvent.sensor_disconnected]("disconnected");
-          break;
-        default:
-          break;
-      }
-    });
-
-
-    await _setUpListeners();
+    await _setUpStatusListener();
+    await _setUpDataListener();
     await synchronizeClock();
     _initLocationService();
     _initSynchronizationTimer();
