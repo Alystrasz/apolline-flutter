@@ -204,6 +204,8 @@ class _BluetoothDevicesPageState extends State<BluetoothDevicesPage> {
 
   /* Handles a click on a device entry */
   void connectToDevice(DiscoveredDevice device) async {
+    this._stopSearchingForDevices();
+
     /* We selected a device - go to the device screen passing information about the selected device */
     DeviceConnectionStatus status = await Navigator.push(
       context,
