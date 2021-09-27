@@ -54,34 +54,7 @@ class _SensorViewState extends State<SensorView> {
   @override
   void initState() {
     super.initState();
-    initializeDevice();
-  }
-
-
-  ///
-  ///
-  Future<void> initializeDevice() async {
-    print("Connecting to device");
-    bool isConnectedToDevice = true;
-    handleDeviceConnect(widget.device);
-
-
-   /* try {
-      await widget.device.connect().timeout(Duration(seconds: 3), onTimeout: () {
-        isConnectedToDevice = false;
-        if (_scaffoldMessengerKey.currentContext != null) {
-          Fluttertoast.showToast(msg: "connectionMessages.failed".tr());
-          this._onWillPop(DeviceConnectionStatus.UNABLE_TO_CONNECT);
-        }
-      });
-    } catch (e) {
-      if (e.code != "already_connected") {
-        throw e;
-      }
-    } finally {
-      if (isConnectedToDevice)
-        handleDeviceConnect(widget.device);
-    }*/
+    this.handleDeviceConnect(widget.device);
   }
 
 
