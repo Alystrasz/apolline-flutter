@@ -45,6 +45,7 @@ class SensorTwin {
 
   SimpleLocationService _locationService;
   Position _currentPosition;
+  DeviceConnectionState _currentState;
 
 
   SensorTwin({@required DiscoveredDevice device, @required Duration syncTiming}) {
@@ -114,6 +115,8 @@ class SensorTwin {
   /// Redistributes sensor status updates to registered callbacks.
   Future<void> _setUpStatusListener () async {
     this._deviceStream = FlutterReactiveBle().connectToDevice(id: _device.id).listen((ConnectionStateUpdate status) {
+      this._currentState = status.connectionState;
+
       switch(status.connectionState) {
         case DeviceConnectionState.connected:
           if (_callbacks.containsKey(SensorTwinEvent.sensor_connected))
