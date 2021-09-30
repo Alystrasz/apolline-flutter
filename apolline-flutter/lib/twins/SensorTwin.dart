@@ -9,7 +9,7 @@ import 'package:apollineflutter/services/sqflite_service.dart';
 import 'package:apollineflutter/twins/SensorTwinEvent.dart';
 import 'package:apollineflutter/utils/position.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter_blue/flutter_blue.dart';
+import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 
 import '../gattsample.dart';
 
@@ -28,8 +28,10 @@ import '../gattsample.dart';
 /// To access these data, one can subscribe to data events using the "on" method.
 ///
 class SensorTwin {
-  BluetoothCharacteristic _characteristic;
-  BluetoothDevice _device;
+  QualifiedCharacteristic _characteristic;
+  StreamSubscription _deviceStream;
+  StreamSubscription _characteristicStream;
+  DiscoveredDevice _device;
   bool _isSendingData;
   bool _isSendingHistory;
   Map<SensorTwinEvent, SensorTwinEventCallback> _callbacks;
@@ -43,9 +45,10 @@ class SensorTwin {
 
   SimpleLocationService _locationService;
   Position _currentPosition;
+  DeviceConnectionState _currentState;
 
 
-  SensorTwin({@required BluetoothDevice device, @required Duration syncTiming}) {
+  SensorTwin({@required DiscoveredDevice device, @required Duration syncTiming}) {
     this._device = device;
     this._isSendingData = false;
     this._isSendingHistory = false;
@@ -64,15 +67,11 @@ class SensorTwin {
   /// Starts sending data live (one point every second) through Bluetooth
   /// connection.
   /// Does nothing if data transmission is already in progress.
-  Future<void> launchDataLiveTransmission () {
+  Future<void> launchDataLiveTransmission () async {
     if (_isSendingData) return null;
     _isSendingData = true;
 
-    return _characteristic.write([0x63, 0]).then((s) {
-      print("Requested streaming start");
-    }).catchError((e) {
-      print(e);
-    });
+    return FlutterReactiveBle().writeCharacteristicWithResponse(_characteristic, value: [0x63, 0]);
   }
 
   /// Stops sending data.
@@ -104,9 +103,7 @@ class SensorTwin {
     // adding NULL at the end of the command
     List<int> finalCommand = new List.from(clockCommandBytes)..addAll([0x0]);
 
-    return _characteristic.write(finalCommand)
-        .then((value) { return value; })
-        .catchError((e) { print('ERROR WHILE SYNCHRONIZING CLOCK: $e'); });
+    return FlutterReactiveBle().writeCharacteristicWithResponse(_characteristic, value: finalCommand);
   }
 
 
@@ -115,16 +112,17 @@ class SensorTwin {
     _callbacks[event] = callback;
   }
 
+  /// Redistributes sensor status updates to registered callbacks.
+  Future<void> _setUpStatusListener () async {
+    this._deviceStream = FlutterReactiveBle().connectToDevice(id: _device.id).listen((ConnectionStateUpdate status) {
+      this._currentState = status.connectionState;
 
-  /// Redistributes sensor data to registered callbacks.
-  Future<void> _setUpListeners () {
-    _device.state.listen((state) {
-      switch(state) {
-        case BluetoothDeviceState.connected:
+      switch(status.connectionState) {
+        case DeviceConnectionState.connected:
           if (_callbacks.containsKey(SensorTwinEvent.sensor_connected))
             _callbacks[SensorTwinEvent.sensor_connected]("connected");
           break;
-        case BluetoothDeviceState.disconnected:
+        case DeviceConnectionState.disconnected:
           if (_callbacks.containsKey(SensorTwinEvent.sensor_disconnected))
             _callbacks[SensorTwinEvent.sensor_disconnected]("disconnected");
           break;
@@ -132,37 +130,34 @@ class SensorTwin {
           break;
       }
     });
+  }
 
-    return _characteristic.setNotifyValue(true).then((s) {
-      /* Catch updates on characteristic  */
-    }).catchError((e) {
-      print(e);
-    }).whenComplete(() {
-
-      _characteristic.value.listen((value) {
-        String message = String.fromCharCodes(value);
-
-        if (_isSendingData && _callbacks.containsKey(SensorTwinEvent.live_data)) {
-          DataPointModel model = _handleSensorUpdate(message);
-          _callbacks[SensorTwinEvent.live_data](model);
-        } else if (_isSendingHistory && _callbacks.containsKey(SensorTwinEvent.history_data)) {
-          _callbacks[SensorTwinEvent.history_data](message);
-        }
-      });
+  /// Redistributes sensor data to registered callbacks.
+  Future<void> _setUpDataListener () async {
+    this._characteristicStream = FlutterReactiveBle().subscribeToCharacteristic(this._characteristic).listen((data) {
+      String message = String.fromCharCodes(data);
+      if (_isSendingData && _callbacks.containsKey(SensorTwinEvent.live_data)) {
+        DataPointModel model = _handleSensorUpdate(message);
+        _callbacks[SensorTwinEvent.live_data](model);
+      } else if (_isSendingHistory && _callbacks.containsKey(SensorTwinEvent.history_data)) {
+        _callbacks[SensorTwinEvent.history_data](message);
+      }
     });
   }
 
   /// Filters out a Bluetooth device's services and characteristics to find the
   /// one that will allow us to receive data from the sensor.
   Future<bool> _loadUpSensorCharacteristic () async {
-    List<BluetoothService> services = await _device.discoverServices();
-    Iterable<BluetoothService> sensorServices = services.where((service) => service.uuid.toString().toLowerCase() == BlueSensorAttributes.dustSensorServiceUUID);
+    List<DiscoveredService> services = await FlutterReactiveBle().discoverServices(_device.id);
+    Iterable<DiscoveredService> sensorServices = services.where((service) => service.serviceId.toString().toLowerCase() == BlueSensorAttributes.dustSensorServiceUUID);
     if (sensorServices.length == 0) {
       return false;
     }
-    BluetoothService sensorService = sensorServices.first;
-    BluetoothCharacteristic characteristic = sensorService.characteristics.firstWhere((char) => char.uuid.toString().toLowerCase() == BlueSensorAttributes.dustSensorCharacteristicUUID);
-    this._characteristic = characteristic;
+    this._characteristic = QualifiedCharacteristic(
+        serviceId: Uuid.parse(BlueSensorAttributes.dustSensorServiceUUID),
+        characteristicId: Uuid.parse(BlueSensorAttributes.dustSensorCharacteristicUUID),
+        deviceId: this._device.id
+    );
     return true;
   }
 
@@ -235,7 +230,8 @@ class SensorTwin {
     if (!serviceFound)
       return false;
 
-    await _setUpListeners();
+    await _setUpStatusListener();
+    await _setUpDataListener();
     await synchronizeClock();
     _initLocationService();
     _initSynchronizationTimer();
@@ -250,7 +246,8 @@ class SensorTwin {
     this._dataService?.stop();
     this._locationService?.close();
     try {
-      this._device.disconnect();
+      this._deviceStream.cancel();
+      this._characteristicStream.cancel();
     } catch (err) {
       print("Couldn't disconnect from sensor (probably because it is not reachable).");
     }
