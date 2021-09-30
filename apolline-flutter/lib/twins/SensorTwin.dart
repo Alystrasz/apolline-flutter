@@ -116,6 +116,7 @@ class SensorTwin {
   Future<void> _setUpStatusListener () async {
     this._deviceStream = FlutterReactiveBle().connectToDevice(id: _device.id).listen((ConnectionStateUpdate status) {
       this._currentState = status.connectionState;
+      print('Device connection state changed: ${this._currentState}');
 
       switch(status.connectionState) {
         case DeviceConnectionState.connected:
