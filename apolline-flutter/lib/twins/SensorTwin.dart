@@ -115,7 +115,9 @@ class SensorTwin {
 
   /// Redistributes sensor status updates to registered callbacks.
   Future<void> _setUpStatusListener () async {
-    this._deviceStream = FlutterReactiveBle().connectToDevice(id: _device.id).asBroadcastStream();
+    this._deviceStream = FlutterReactiveBle().connectToDevice(id: _device.id).asBroadcastStream(onCancel: (state) {
+      state.cancel();
+    });
     this._deviceStreamSubscription = this._deviceStream.listen((ConnectionStateUpdate status) async {
       this._currentState = status.connectionState;
       print('Device connection state changed: ${this._currentState}');
