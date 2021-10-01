@@ -29,7 +29,8 @@ import '../gattsample.dart';
 ///
 class SensorTwin {
   QualifiedCharacteristic _characteristic;
-  StreamSubscription _deviceStream;
+  Stream<ConnectionStateUpdate> _deviceStream;
+  StreamSubscription _deviceStreamSubscription;
   StreamSubscription _characteristicStream;
   DiscoveredDevice _device;
   bool _isSendingData;
@@ -114,7 +115,8 @@ class SensorTwin {
 
   /// Redistributes sensor status updates to registered callbacks.
   Future<void> _setUpStatusListener () async {
-    this._deviceStream = FlutterReactiveBle().connectToDevice(id: _device.id).listen((ConnectionStateUpdate status) async {
+    this._deviceStream = FlutterReactiveBle().connectToDevice(id: _device.id).asBroadcastStream();
+    this._deviceStreamSubscription = this._deviceStream.listen((ConnectionStateUpdate status) async {
       this._currentState = status.connectionState;
       print('Device connection state changed: ${this._currentState}');
 
@@ -238,11 +240,17 @@ class SensorTwin {
       return false;
 
     await _setUpStatusListener();
-    await _setUpDataListener();
-    await synchronizeClock();
-    _initLocationService();
-    _initSynchronizationTimer();
-    return true;
+
+    ConnectionStateUpdate data = await this._deviceStream.first;
+    if (data.connectionState == DeviceConnectionState.connected) {
+      await _setUpDataListener();
+      await synchronizeClock();
+      _initLocationService();
+      _initSynchronizationTimer();
+      return true;
+    } else {
+      return false;
+    }
   }
 
   /// Releases resources associated with the sensor.
@@ -253,7 +261,7 @@ class SensorTwin {
     this._dataService?.stop();
     this._locationService?.close();
     try {
-      this._deviceStream.cancel();
+      this._deviceStreamSubscription.cancel();
       this._characteristicStream.cancel();
     } catch (err) {
       print("Couldn't disconnect from sensor (probably because it is not reachable).");
