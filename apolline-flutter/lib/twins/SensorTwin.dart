@@ -42,7 +42,6 @@ class SensorTwin {
   Duration _synchronizationTiming;
   RealtimeDataService _dataService = locator<RealtimeDataService>();
   Timer _syncTimer;
-  Timer _reconnectionTimer;
 
   SimpleLocationService _locationService;
   Position _currentPosition;
@@ -137,9 +136,8 @@ class SensorTwin {
 
   Future<void> _handleDisconnection () async {
     await this._deviceStream.cancel();
-    this._reconnectionTimer = Timer.periodic(Duration(seconds: 5), (timer) {
-      print('Reconnect me bro');
-    });
+    await this._characteristicStream.cancel();
+    await init();
   }
 
   /// Redistributes sensor data to registered callbacks.
@@ -252,7 +250,6 @@ class SensorTwin {
   void shutdown () {
     this._callbacks = Map();
     this._syncTimer?.cancel();
-    this._reconnectionTimer?.cancel();
     this._service.client?.close();
     this._dataService?.stop();
     this._locationService?.close();
