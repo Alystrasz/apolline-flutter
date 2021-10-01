@@ -135,8 +135,7 @@ class SensorTwin {
   }
 
   Future<void> _handleDisconnection () async {
-    await this._deviceStream.cancel();
-    await this._characteristicStream.cancel();
+    this.shutdown();
     await init();
   }
 
