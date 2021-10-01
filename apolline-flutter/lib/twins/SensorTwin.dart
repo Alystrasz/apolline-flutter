@@ -42,6 +42,7 @@ class SensorTwin {
   Duration _synchronizationTiming;
   RealtimeDataService _dataService = locator<RealtimeDataService>();
   Timer _syncTimer;
+  Timer _reconnectionTimer;
 
   SimpleLocationService _locationService;
   Position _currentPosition;
@@ -114,7 +115,7 @@ class SensorTwin {
 
   /// Redistributes sensor status updates to registered callbacks.
   Future<void> _setUpStatusListener () async {
-    this._deviceStream = FlutterReactiveBle().connectToDevice(id: _device.id).listen((ConnectionStateUpdate status) {
+    this._deviceStream = FlutterReactiveBle().connectToDevice(id: _device.id).listen((ConnectionStateUpdate status) async {
       this._currentState = status.connectionState;
       print('Device connection state changed: ${this._currentState}');
 
@@ -124,12 +125,20 @@ class SensorTwin {
             _callbacks[SensorTwinEvent.sensor_connected]("connected");
           break;
         case DeviceConnectionState.disconnected:
+          this._handleDisconnection();
           if (_callbacks.containsKey(SensorTwinEvent.sensor_disconnected))
             _callbacks[SensorTwinEvent.sensor_disconnected]("disconnected");
           break;
         default:
           break;
       }
+    });
+  }
+
+  Future<void> _handleDisconnection () async {
+    await this._deviceStream.cancel();
+    this._reconnectionTimer = Timer.periodic(Duration(seconds: 5), (timer) {
+      print('Reconnect me bro');
     });
   }
 
@@ -243,6 +252,7 @@ class SensorTwin {
   void shutdown () {
     this._callbacks = Map();
     this._syncTimer?.cancel();
+    this._reconnectionTimer?.cancel();
     this._service.client?.close();
     this._dataService?.stop();
     this._locationService?.close();
