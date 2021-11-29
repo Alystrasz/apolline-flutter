@@ -99,7 +99,7 @@ class SensorTwin {
   Future<void> synchronizeClock () {
     print("Synchronizing clock");
     String command = "i";
-    DateTime now = DateTime.now();
+    DateTime now = DateTime.now().toUtc();
     String time = "${now.hour};${now.minute};${now.second};${now.day};${now.month};${now.year}";
     String clockCommand = "$command$time";
 
