@@ -27,6 +27,8 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Apolline needs Bluetooth access to connect to air quality sensors.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Apolline uses Bluetooth to connect to the Blue sensors.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
