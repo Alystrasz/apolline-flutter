@@ -38,7 +38,7 @@
 	<key>NSLocationUsageDescription</key>
 	<string>Older devices need location.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Need location when in use</string>
+	<string>When your sensor does not have an accurate GPS position, Apolline uses your iPhone's location; it is used to tag air quality information.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>bluetooth-central</string>
