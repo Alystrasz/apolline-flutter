@@ -43,6 +43,8 @@
 	<string>Older devices need location.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Need location when in use</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Apolline needs Bluetooth access to connect to air quality sensors.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>bluetooth-central</string>
