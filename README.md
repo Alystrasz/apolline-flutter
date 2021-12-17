@@ -55,6 +55,10 @@ gpg -d --passphrase "${{ secrets.UPLOAD_KEYSTORE_PASSPHRASE }}" --batch upload.k
 
 A Medium article describing the procedure can be found here: https://stefma.medium.com/how-to-store-a-android-keystore-safely-on-github-actions-f0cef9413784
 
+## Semantic versioning
+
+Each time a new application build is submitted, don't forget to increase build number.
+
 ## Supported sensors
 
 - [LOA](http://www-loa.univ-lille1.fr/) sensor.
